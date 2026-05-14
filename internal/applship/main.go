@@ -102,7 +102,7 @@ func appCreate(cfg Config, args []string) error {
 	if err != nil {
 		return err
 	}
-	if appID, err := client.FindAppID(*bundleID); err != nil {
+	if appID, err := client.LookupAppID(*bundleID); err != nil {
 		return err
 	} else if appID != "" {
 		fmt.Printf("app exists app=%s bundleId=%s\n", appID, *bundleID)

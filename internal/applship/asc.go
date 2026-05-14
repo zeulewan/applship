@@ -168,6 +168,20 @@ func (c *ASCClient) FindAppID(bundleID string) (string, error) {
 	return resp.Data[0].ID, nil
 }
 
+func (c *ASCClient) LookupAppID(bundleID string) (string, error) {
+	var resp struct {
+		Data []ascResource `json:"data"`
+	}
+	path := "/v1/apps?" + url.Values{"filter[bundleId]": {bundleID}}.Encode()
+	if err := c.Request("GET", path, nil, &resp); err != nil {
+		return "", err
+	}
+	if len(resp.Data) == 0 {
+		return "", nil
+	}
+	return resp.Data[0].ID, nil
+}
+
 func (c *ASCClient) FindBundleID(identifier string) (string, error) {
 	var resp struct {
 		Data []ascResource `json:"data"`
