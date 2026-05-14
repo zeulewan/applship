@@ -43,19 +43,10 @@ type ascError struct {
 }
 
 type ascResource struct {
-	Type          string                  `json:"type"`
-	ID            string                  `json:"id"`
-	Attributes    map[string]any          `json:"attributes"`
-	Relationships map[string]relationship `json:"relationships"`
-}
-
-type relationship struct {
-	Data *resourceID `json:"data"`
-}
-
-type resourceID struct {
-	Type string `json:"type"`
-	ID   string `json:"id"`
+	Type          string         `json:"type"`
+	ID            string         `json:"id"`
+	Attributes    map[string]any `json:"attributes"`
+	Relationships map[string]any `json:"relationships"`
 }
 
 func NewASCClientFromEnv() (*ASCClient, error) {
