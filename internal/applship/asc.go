@@ -168,6 +168,73 @@ func (c *ASCClient) FindAppID(bundleID string) (string, error) {
 	return resp.Data[0].ID, nil
 }
 
+func (c *ASCClient) FindBundleID(identifier string) (string, error) {
+	var resp struct {
+		Data []ascResource `json:"data"`
+	}
+	path := "/v1/bundleIds?" + url.Values{"filter[identifier]": {identifier}}.Encode()
+	if err := c.Request("GET", path, nil, &resp); err != nil {
+		return "", err
+	}
+	if len(resp.Data) == 0 {
+		return "", nil
+	}
+	return resp.Data[0].ID, nil
+}
+
+func (c *ASCClient) CreateBundleID(name, identifier string) (string, error) {
+	payload := map[string]any{"data": map[string]any{
+		"type":       "bundleIds",
+		"attributes": map[string]string{"name": name, "identifier": identifier, "platform": "IOS"},
+	}}
+	var created struct {
+		Data ascResource `json:"data"`
+	}
+	if err := c.Request("POST", "/v1/bundleIds", payload, &created); err != nil {
+		return "", err
+	}
+	return created.Data.ID, nil
+}
+
+func (c *ASCClient) EnsureBundleID(name, identifier string) (string, error) {
+	id, err := c.FindBundleID(identifier)
+	if err != nil {
+		return "", err
+	}
+	if id != "" {
+		return id, nil
+	}
+	return c.CreateBundleID(name, identifier)
+}
+
+func (c *ASCClient) CreateApp(name, bundleResourceID, sku, primaryLocale string) (string, error) {
+	if primaryLocale == "" {
+		primaryLocale = "en-US"
+	}
+	if sku == "" {
+		sku = bundleResourceID
+	}
+	payload := map[string]any{"data": map[string]any{
+		"type": "apps",
+		"attributes": map[string]string{
+			"name":          name,
+			"sku":           sku,
+			"primaryLocale": primaryLocale,
+			"platform":      "IOS",
+		},
+		"relationships": map[string]any{
+			"bundleId": map[string]any{"data": map[string]string{"type": "bundleIds", "id": bundleResourceID}},
+		},
+	}}
+	var created struct {
+		Data ascResource `json:"data"`
+	}
+	if err := c.Request("POST", "/v1/apps", payload, &created); err != nil {
+		return "", err
+	}
+	return created.Data.ID, nil
+}
+
 func (c *ASCClient) GetOrCreateVersion(appID, version string) (string, error) {
 	var resp struct {
 		Data []ascResource `json:"data"`

@@ -42,6 +42,7 @@ applship archive --version 1.0.0 --build 1
 applship upload --archive build/applship/App-1.0.0.xcarchive
 applship submit --version 1.0.0 --whats-new RELEASE_NOTES.md
 applship status --version 1.0.0
+applship app create --name "My App" --bundle-id com.example.app
 ```
 
 ## App Store Connect Auth
@@ -68,6 +69,7 @@ Secrets belong in your shell/keychain/CI secret store, not in `.applship.json`.
 - `upload`: exports/uploads an archive to App Store Connect.
 - `submit`: creates/updates an App Store version, attaches an eligible build, sets release notes, and submits for review.
 - `status`: prints App Store versions and recent builds for the configured bundle id.
+- `app create`: creates the Apple Developer Bundle ID if needed, then creates the App Store Connect app record.
 - `release`: archive, upload, wait for build processing, and submit.
 
 ## Design Notes

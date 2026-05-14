@@ -23,6 +23,7 @@ Usage:
   applship upload --archive PATH
   applship submit --version X.Y.Z [--build-number N] [--whats-new FILE] [--no-submit]
   applship status
+  applship app create --name NAME --bundle-id BUNDLE_ID [--sku SKU]
   applship release --version X.Y.Z [--build N] [--whats-new FILE] [--submit]
 `
 
@@ -57,6 +58,8 @@ func Main(args []string) int {
 		cmdErr = submitCmd(cfg, args[1:])
 	case "status":
 		cmdErr = status(cfg, args[1:])
+	case "app":
+		cmdErr = appCmd(cfg, args[1:])
 	case "release":
 		cmdErr = release(cfg, args[1:])
 	default:
@@ -66,6 +69,55 @@ func Main(args []string) int {
 		return fail(cmdErr)
 	}
 	return 0
+}
+
+func appCmd(cfg Config, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: applship app create")
+	}
+	switch args[0] {
+	case "create":
+		return appCreate(cfg, args[1:])
+	default:
+		return fmt.Errorf("unknown app command %q", args[0])
+	}
+}
+
+func appCreate(cfg Config, args []string) error {
+	fs := flag.NewFlagSet("app create", flag.ContinueOnError)
+	name := fs.String("name", "", "App Store app name")
+	bundleID := fs.String("bundle-id", cfg.BundleID, "Bundle ID")
+	sku := fs.String("sku", "", "SKU")
+	locale := fs.String("locale", "en-US", "Primary locale")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *name == "" {
+		return fmt.Errorf("missing --name")
+	}
+	if *bundleID == "" {
+		return fmt.Errorf("missing --bundle-id")
+	}
+	client, err := NewASCClientFromEnv()
+	if err != nil {
+		return err
+	}
+	if appID, err := client.FindAppID(*bundleID); err != nil {
+		return err
+	} else if appID != "" {
+		fmt.Printf("app exists app=%s bundleId=%s\n", appID, *bundleID)
+		return nil
+	}
+	bundleResourceID, err := client.EnsureBundleID(*name, *bundleID)
+	if err != nil {
+		return err
+	}
+	appID, err := client.CreateApp(*name, bundleResourceID, *sku, *locale)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("created app=%s bundleResource=%s bundleId=%s\n", appID, bundleResourceID, *bundleID)
+	return nil
 }
 
 func initConfig(cfg Config, args []string) error {
