@@ -56,7 +56,7 @@ func Main(args []string) int {
 	case "submit":
 		cmdErr = submitCmd(cfg, args[1:])
 	case "status":
-		cmdErr = status(cfg)
+		cmdErr = status(cfg, args[1:])
 	case "release":
 		cmdErr = release(cfg, args[1:])
 	default:
@@ -398,15 +398,20 @@ func submitCmd(cfg Config, args []string) error {
 	return nil
 }
 
-func status(cfg Config) error {
-	if cfg.BundleID == "" {
+func status(cfg Config, args []string) error {
+	fs := flag.NewFlagSet("status", flag.ContinueOnError)
+	bundleID := fs.String("bundle-id", cfg.BundleID, "Bundle ID")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *bundleID == "" {
 		return fmt.Errorf("missing bundle id; set bundleId in .applship.json")
 	}
 	client, err := NewASCClientFromEnv()
 	if err != nil {
 		return err
 	}
-	return client.PrintStatus(cfg.BundleID)
+	return client.PrintStatus(*bundleID)
 }
 
 func release(cfg Config, args []string) error {
