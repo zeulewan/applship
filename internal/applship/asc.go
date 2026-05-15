@@ -240,6 +240,68 @@ func (c *ASCClient) CreateApp(name, bundleResourceID, sku, primaryLocale string)
 	return created.Data.ID, nil
 }
 
+func (c *ASCClient) SetFreePrice(appID, territory string) (string, error) {
+	pricePointID, err := c.FreePricePoint(appID, territory)
+	if err != nil {
+		return "", err
+	}
+	payload := map[string]any{
+		"data": map[string]any{
+			"type":       "appPriceSchedules",
+			"attributes": map[string]any{},
+			"relationships": map[string]any{
+				"app": map[string]any{"data": map[string]string{"type": "apps", "id": appID}},
+				"baseTerritory": map[string]any{
+					"data": map[string]string{"type": "territories", "id": territory},
+				},
+				"manualPrices": map[string]any{
+					"data": []map[string]string{{"type": "appPrices", "id": "${price-0}"}},
+				},
+			},
+		},
+		"included": []map[string]any{{
+			"type": "appPrices",
+			"id":   "${price-0}",
+			"attributes": map[string]any{
+				"startDate": nil,
+				"endDate":   nil,
+			},
+			"relationships": map[string]any{
+				"appPricePoint": map[string]any{
+					"data": map[string]string{"type": "appPricePoints", "id": pricePointID},
+				},
+			},
+		}},
+	}
+	var created struct {
+		Data ascResource `json:"data"`
+	}
+	if err := c.Request("POST", "/v1/appPriceSchedules", payload, &created); err != nil {
+		return "", err
+	}
+	return created.Data.ID, nil
+}
+
+func (c *ASCClient) FreePricePoint(appID, territory string) (string, error) {
+	var resp struct {
+		Data []ascResource `json:"data"`
+	}
+	values := url.Values{
+		"filter[territory]": {territory},
+		"limit":             {"200"},
+	}
+	if err := c.Request("GET", "/v1/apps/"+appID+"/appPricePoints?"+values.Encode(), nil, &resp); err != nil {
+		return "", err
+	}
+	for _, point := range resp.Data {
+		price := fmt.Sprint(point.Attributes["customerPrice"])
+		if price == "0" || price == "0.0" || price == "0.00" {
+			return point.ID, nil
+		}
+	}
+	return "", fmt.Errorf("no free app price point found for app=%s territory=%s", appID, territory)
+}
+
 func (c *ASCClient) GetOrCreateVersion(appID, version string) (string, error) {
 	var resp struct {
 		Data []ascResource `json:"data"`

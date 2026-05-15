@@ -22,6 +22,7 @@ Usage:
   applship archive --version X.Y.Z [--build N]
   applship upload --archive PATH
   applship submit --version X.Y.Z [--build-number N] [--whats-new FILE] [--no-submit]
+  applship price free [--bundle-id BUNDLE_ID] [--territory USA]
   applship status
   applship app create --name NAME --bundle-id BUNDLE_ID [--sku SKU]
   applship release --version X.Y.Z [--build N] [--whats-new FILE] [--submit]
@@ -56,6 +57,8 @@ func Main(args []string) int {
 		cmdErr = upload(cfg, args[1:])
 	case "submit":
 		cmdErr = submitCmd(cfg, args[1:])
+	case "price":
+		cmdErr = priceCmd(cfg, args[1:])
 	case "status":
 		cmdErr = status(cfg, args[1:])
 	case "app":
@@ -69,6 +72,44 @@ func Main(args []string) int {
 		return fail(cmdErr)
 	}
 	return 0
+}
+
+func priceCmd(cfg Config, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: applship price free")
+	}
+	switch args[0] {
+	case "free":
+		return priceFree(cfg, args[1:])
+	default:
+		return fmt.Errorf("unknown price command %q", args[0])
+	}
+}
+
+func priceFree(cfg Config, args []string) error {
+	fs := flag.NewFlagSet("price free", flag.ContinueOnError)
+	bundleID := fs.String("bundle-id", cfg.BundleID, "Bundle ID")
+	territory := fs.String("territory", "USA", "Base App Store territory")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *bundleID == "" {
+		return fmt.Errorf("missing bundle id; set bundleId in .applship.json or pass --bundle-id")
+	}
+	client, err := NewASCClientFromEnv()
+	if err != nil {
+		return err
+	}
+	appID, err := client.FindAppID(*bundleID)
+	if err != nil {
+		return err
+	}
+	scheduleID, err := client.SetFreePrice(appID, *territory)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("price free app=%s territory=%s schedule=%s\n", appID, *territory, scheduleID)
+	return nil
 }
 
 func appCmd(cfg Config, args []string) error {
