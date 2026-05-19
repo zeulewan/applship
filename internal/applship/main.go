@@ -1,6 +1,7 @@
 package applship
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -23,6 +24,7 @@ Usage:
   applship upload --archive PATH
   applship submit --version X.Y.Z [--build-number N] [--whats-new FILE] [--no-submit]
   applship price free [--bundle-id BUNDLE_ID] [--territory USA]
+  applship api get PATH
   applship status
   applship app create --name NAME --bundle-id BUNDLE_ID [--sku SKU]
   applship release --version X.Y.Z [--build N] [--whats-new FILE] [--submit]
@@ -59,6 +61,8 @@ func Main(args []string) int {
 		cmdErr = submitCmd(cfg, args[1:])
 	case "price":
 		cmdErr = priceCmd(cfg, args[1:])
+	case "api":
+		cmdErr = apiCmd(args[1:])
 	case "status":
 		cmdErr = status(cfg, args[1:])
 	case "app":
@@ -72,6 +76,26 @@ func Main(args []string) int {
 		return fail(cmdErr)
 	}
 	return 0
+}
+
+func apiCmd(args []string) error {
+	if len(args) < 2 || args[0] != "get" {
+		return fmt.Errorf("usage: applship api get PATH")
+	}
+	client, err := NewASCClientFromEnv()
+	if err != nil {
+		return err
+	}
+	var out any
+	if err := client.Request("GET", args[1], nil, &out); err != nil {
+		return err
+	}
+	b, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(b))
+	return nil
 }
 
 func priceCmd(cfg Config, args []string) error {

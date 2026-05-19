@@ -41,6 +41,7 @@ applship launch --simulator booted --bundle-id com.example.app
 applship archive --version 1.0.0 --build 1
 applship upload --archive build/applship/App-1.0.0.xcarchive
 applship submit --version 1.0.0 --whats-new RELEASE_NOTES.md
+applship price free --bundle-id com.example.app
 applship status --version 1.0.0
 applship app create --name "My App" --bundle-id com.example.app
 ```
@@ -68,8 +69,10 @@ Secrets belong in your shell/keychain/CI secret store, not in `.applship.json`.
 - `archive`: archives a generic iOS Release build and writes export options.
 - `upload`: exports/uploads an archive to App Store Connect.
 - `submit`: creates/updates an App Store version, attaches an eligible build, sets release notes, and submits for review.
+- `price free`: sets the app to free using the current `appPriceSchedules` API.
 - `status`: prints App Store versions and recent builds for the configured bundle id.
 - `app create`: creates the Apple Developer Bundle ID if needed, then creates the App Store Connect app record.
+- `api get PATH`: raw App Store Connect API GET helper for inspecting new or unsupported endpoints.
 - `release`: archive, upload, wait for build processing, and submit.
 
 ## Design Notes
@@ -78,3 +81,4 @@ Secrets belong in your shell/keychain/CI secret store, not in `.applship.json`.
 - CLI style follows the useful bits from `gogcli`: predictable commands, stderr for progress, stdout for results, and no secrets in project files.
 - `manageAppVersionAndBuildNumber` is forced false on export so Apple/Xcode does not silently mutate build numbers.
 - App Store submissions use the modern `reviewSubmissions` API flow: create submission, create item, then patch `submitted: true`.
+- App availability now uses `appAvailabilityV2`; the old Fastlane `availableTerritories` pricing/availability path is stale. DSA issues appear in `territoryAvailabilities[].attributes.contentStatuses`, for example `TRADER_STATUS_NOT_PROVIDED`.
